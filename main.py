@@ -1,2 +1,2 @@
 print('Hallo')
-print("Zeile 2")
+print('Zeile 2')
