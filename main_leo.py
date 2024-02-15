@@ -1,6 +1,8 @@
 import numpy as np
 from ephcal import *
 import math
+from matplotlib import pyplot as plt
+from llh2ecef import *
 
 # GPS value for speed of light
 vlight = 299792458.0
@@ -69,15 +71,23 @@ for tor in np.unique(raw[:,0]):
 
         # compute step into the "right" direction
         delta_x_hat = np.linalg.inv(H.T @ H) @ H.T @ delta_z_hat
-        size_of_last_step = np.linalg.norm(delta_x_hat)
+        size_of_last_step = np.linalg.norm(delta_x_hat[0:3])
         # print("delta_x_hat =", delta_x_hat, ", length =", size_of_last_step)
 
         # update estimate
         x_hat = x_hat + delta_x_hat
 
-    positions = np.concatenate((positions, [tor, x_hat]), axis=0)
-
+    new_position = np.zeros((1, 4))
+    new_position[0, 0] = tor
+    new_position[0, 1:4] = ecef2llh(x_hat[0:3])
+    if new_position[0, 3] < -90000: continue
+    if len(positions) == 0: positions = new_position
+    else: positions = np.concatenate((positions, new_position), axis=0)
+    # positions = np.concatenate((positions, [np.concatenate(([tor], [x_hat[0:3]]), axis=1)]), axis=0)
 
 
 print(positions)
+# plt.scatter(positions[:,0], positions[:,3], c=positions[:,3])
+plt.plot(positions[:,0], positions[:,3])
+plt.show()
 
