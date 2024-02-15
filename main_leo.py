@@ -45,7 +45,7 @@ for tor in np.unique(raw[:,0]):
     if len(satellites) < 4: continue # need at least four satellites to determine user position
 
     # now that we see at least four satellites, we can compute an actual user position
-    x_hat = np.array([0, 0, 0])
+    x_hat = np.array([0, 0, 0, 0])
 
     size_of_last_step = 100000 # arbitrary large value to get the while loop going
     counter = 0
@@ -55,7 +55,7 @@ for tor in np.unique(raw[:,0]):
         # what would we measure if we were at point x_hat and didn't have any errors?
         z_hat = np.zeros(satellites.shape[0])
         for i in range(satellites.shape[0]):
-            z_hat[i] = np.linalg.norm(x_hat - satellites[i])
+            z_hat[i] = np.linalg.norm(x_hat[0:3] - satellites[i])
 
         # print("We actually measured:           ", z[0:3], "...")
         # print("At x_hat we would have measured:", z_hat[0:3], "...")
@@ -64,11 +64,11 @@ for tor in np.unique(raw[:,0]):
         delta_z_hat = z - z_hat
 
         # compute H matrix based on current estimate
-        H = np.zeros(satellites.shape)
-        for i in range(len(H)): H[i] = (x_hat - satellites[i]) / np.linalg.norm(x_hat - satellites[i])
+        H = np.zeros((satellites.shape[0], 4))
+        for i in range(len(H)): H[i] = np.concatenate(((x_hat[0:3] - satellites[i]) / np.linalg.norm(x_hat[0:3] - satellites[i]), [1]), axis=0)
 
         # compute step into the "right" direction
-        delta_x_hat = 0.5 * np.linalg.inv(H.T @ H) @ H.T @ delta_z_hat
+        delta_x_hat = np.linalg.inv(H.T @ H) @ H.T @ delta_z_hat
         size_of_last_step = np.linalg.norm(delta_x_hat)
         # print("delta_x_hat =", delta_x_hat, ", length =", size_of_last_step)
 
