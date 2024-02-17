@@ -21,6 +21,8 @@ print(len(np.unique(raw[:,0])), "different times")
 for tor in np.unique(raw[:,0]):
     print("Time:", tor)
     data_points = raw[raw[:, 0] == tor]
+    if len(data_points) < 4: continue # need at least four measurements to determine user position
+
     satellites = np.array([])
     z = np.array([])
     for row in range(len(data_points)):
@@ -43,8 +45,6 @@ for tor in np.unique(raw[:,0]):
         else:
             satellites = np.concatenate((satellites, svpos.T), axis=0)
             z = np.concatenate((z, [pr]), axis=0)
-
-    if len(satellites) < 4: continue # need at least four satellites to determine user position
 
     # now that we see at least four satellites, we can compute an actual user position
     x_hat = np.array([0, 0, 0, 0])
@@ -77,17 +77,25 @@ for tor in np.unique(raw[:,0]):
         # update estimate
         x_hat = x_hat + delta_x_hat
 
-    new_position = np.zeros((1, 4))
+    new_position = np.zeros((1, 5))
     new_position[0, 0] = tor
     new_position[0, 1:4] = ecef2llh(x_hat[0:3])
-    if new_position[0, 3] < -90000: continue
+    new_position[0, 4] = x_hat[3]/vlight
+    # if new_position[0, 3] > -90000: continue
     if len(positions) == 0: positions = new_position
     else: positions = np.concatenate((positions, new_position), axis=0)
     # positions = np.concatenate((positions, [np.concatenate(([tor], [x_hat[0:3]]), axis=1)]), axis=0)
 
 
 print(positions)
-# plt.scatter(positions[:,0], positions[:,3], c=positions[:,3])
+# plt.scatter(positions[:,1], positions[:,2], c=positions[:,3])
+# plt.colorbar()
+# plt.xlabel("Longitude (degrees)")
+# plt.ylabel("Latitude (degrees)")
+# plt.title("Estimated positions in lat/lon/height (deg/deg/m)")
 plt.plot(positions[:,0], positions[:,3])
+plt.ylabel("Height in m")
+plt.xlabel("Time of Reception")
+plt.title("Estimated height over time")
 plt.show()
 
