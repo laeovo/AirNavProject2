@@ -39,6 +39,10 @@ for tor in np.unique(raw[:,0]):
         # with new tot, compute position of satellite
         (svpos, svclock, ecode) = ephcal(tot_updated, ephem, svid)
 
+        # TODO: Correct for ionospheric error? But we don't yet know height of the user or elevation of the sv, w.r.t. user
+
+        # TODO: Correct for tropospheric error? But we only have the L1 band
+
         if len(satellites) == 0:
             satellites = np.array(svpos.T)
             z = np.array([pr])
@@ -87,7 +91,6 @@ for tor in np.unique(raw[:,0]):
     # positions = np.concatenate((positions, [np.concatenate(([tor], [x_hat[0:3]]), axis=1)]), axis=0)
 
 
-print(positions)
 # plt.scatter(positions[:,1], positions[:,2], c=positions[:,3])
 # plt.colorbar()
 # plt.xlabel("Longitude (degrees)")
