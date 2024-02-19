@@ -3,6 +3,7 @@ from ephcal import *
 import math
 from matplotlib import pyplot as plt
 from llh2ecef import *
+from ecef2enu import *
 
 # GPS value for speed of light
 vlight = 299792458.0
@@ -58,6 +59,15 @@ for tor in np.unique(raw[:,0]):
     while size_of_last_step > 0.3 and counter < 2000:
         counter += 1
         # print("      x_hat =", x_hat, ", distance to center =", np.linalg.norm(x_hat))
+
+        if counter > 1:
+            # correct for tropospheric error
+            for i in range(len(z)):
+                sat_pos_enu = ecef2enu(satellites[i], x_hat, ecef2llh(x_hat))
+                elevation = math.atan2(sat_pos_enu[0, 2], math.sqrt(sat_pos_enu[0, 0]**2+sat_pos_enu[0, 1]**2)) # or the other way around?
+                delta_tropo = 2.4224*np.exp(-0.00013345*ecef2llh(x_hat)[0, 2])/0.026+math.sin(elevation)
+                z[i] -= delta_tropo
+
         # what would we measure if we were at point x_hat and didn't have any errors?
         z_hat = np.zeros(satellites.shape[0])
         for i in range(satellites.shape[0]):
