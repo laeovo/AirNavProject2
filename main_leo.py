@@ -49,16 +49,9 @@ for tor in np.unique(raw[:,0]):
         delta_t = pr/vlight
         alpha = delta_t * eanvel
         delta_svpos = np.zeros((3, 1))
-        # delta_svpos[0, 0] = alpha * svpos[1, 0]
-        # delta_svpos[1, 0] = -alpha * svpos[0, 0]
-        # svpos += delta_svpos
         svpos = np.array([[math.cos(alpha), math.sin(alpha), 0],
                           [-math.sin(alpha), math.cos(alpha), 0],
-                          [0, 0, 1]]) @ svpos # TODO: was this the right way around?
-
-        # TODO: Correct for ionospheric error? But we don't yet know height of the user or elevation of the sv, w.r.t. user
-
-        # TODO: Correct for tropospheric error? But we only have the L1 band
+                          [0, 0, 1]]) @ svpos
 
         if len(satellites) == 0:
             satellites = np.array(svpos.T)
@@ -115,8 +108,8 @@ for tor in np.unique(raw[:,0]):
 # plt.xlabel("Time of Reception")
 # plt.title("Estimated height over time")
 
-plt.plot(positions[:,0], positions[:,4])
-plt.ylabel("User clock error [m]")
+plt.scatter(positions[:,0], positions[:,4])
+plt.ylabel("User clock offset [m]")
 plt.xlabel("Time of Reception")
 plt.title("Estimated error over time")
 plt.show()
