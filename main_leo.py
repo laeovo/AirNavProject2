@@ -97,20 +97,20 @@ for tor in np.unique(raw[:,0]):
     else: positions = np.concatenate((positions, new_position), axis=0)
 
 
-# plt.scatter(positions[:,2], positions[:,1], c=positions[:,3])
-# plt.colorbar()
-# plt.xlabel("Longitude (degrees)")
-# plt.ylabel("Latitude (degrees)")
-# plt.title("Estimated positions in lat/lon/height (deg/deg/m)")
+plt.scatter(positions[:,2], positions[:,1], c=positions[:,3])
+plt.colorbar()
+plt.xlabel("Longitude (degrees)")
+plt.ylabel("Latitude (degrees)")
+plt.title("Estimated positions in lat/lon/height (deg/deg/m)")
 
 # plt.plot(positions[:,0], positions[:,3])
 # plt.ylabel("Height in m")
 # plt.xlabel("Time of Reception")
 # plt.title("Estimated height over time")
 
-plt.scatter(positions[:,0], positions[:,4])
-plt.ylabel("User clock offset [m]")
-plt.xlabel("Time of Reception")
-plt.title("Estimated error over time")
+# plt.scatter(positions[:,0], positions[:,4])
+# plt.ylabel("User clock offset [m]")
+# plt.xlabel("Time of Reception")
+# plt.title("Estimated error over time")
 plt.show()
 
