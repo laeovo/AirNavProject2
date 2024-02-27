@@ -3,6 +3,7 @@ from ephcal import *
 import math
 from matplotlib import pyplot as plt
 from llh2ecef import *
+from gnss_position_estimation import *
 
 # GPS value for speed of light
 vlight = 299792458.0 # m/s
@@ -32,25 +33,27 @@ for raw_row in range(len(raw)):
     previous_tor = current_tor
     current_tor = raw_row[raw_row, 0]
 
-    # identify satellites common between previous and current tor
+    # step 1: identify satellites common between previous and current tor
     satellites_previous = satellites_current
     satellites_current = raw[raw[:, 0] == current_tor][:,2]
     common_satellite_ids = np.intersect1d(satellites_previous, satellites_current)
 
-    # compute single difference between common satellites
+    # step 2: compute single difference between common satellites
     delta_Phi = np.zeros(len(common_satellite_ids))
     for i in range(len(common_satellite_ids)):
         delta_Phi[i] = raw[raw[:, 0] == current_tor and raw[:,2] == common_satellite_ids[i]] - raw[raw[:, 0] == previous_tor and raw[:,2] == common_satellite_ids[i]]
 
-    # calculate unit vectors to satellites at current time
+    # step 3: calculate unit vectors to satellites at current time
     e_current = np.zeros((len(common_satellite_ids), 3))
+    tor, user_position_current, user_clock_error = calculateUserPosition(satellites_current)
     for i in range(len(common_satellite_ids)):
+
         e_current[i,:] = 
 
-plt.scatter(positions[:,2], positions[:,1], c=positions[:,3])
-plt.colorbar()
-plt.xlabel("Longitude (degrees)")
-plt.ylabel("Latitude (degrees)")
-plt.title("Estimated positions in lat/lon/height (deg/deg/m)")
-plt.show()
+# plt.scatter(velocities[:,2], velocities[:,1], c=velocities[:,3])
+# plt.colorbar()
+# plt.xlabel("Longitude (degrees)")
+# plt.ylabel("Latitude (degrees)")
+# plt.title("Estimated positions in lat/lon/height (deg/deg/m)")
+# plt.show()
 
