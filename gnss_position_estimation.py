@@ -30,7 +30,7 @@ def calculate_sv_pos(time_of_reception, pr, svid, ephem):
                       [-math.sin(alpha), math.cos(alpha), 0],
                       [0, 0, 1]]) @ svpos
 
-    return svpos
+    return svpos.T, pr
 
 # calculates user position in ECEF and user clock error, given pseudoranges and sv positions
 def calculate_least_squares_solution(pseudoranges, satellitePositions):
@@ -82,9 +82,12 @@ for time_index in range(len(np.unique(raw[:, 0]))):
 
     # now that we see at least four satellites, we can compute an actual user position
     sv_positions = np.zeros((len(data_points), 3))
+    pseudoranges = np.zeros(len(data_points))
     for row in range(len(data_points)):
-        sv_positions[row] = calculate_sv_pos(tor, data_points[row, 3], data_points[row, 2], ephem_from_file).T
-    user_position_ecef, user_clock_error = calculate_least_squares_solution(data_points[:, 3], sv_positions)
+        sv_position, updated_pseudorange = calculate_sv_pos(tor, data_points[row, 3], data_points[row, 2], ephem_from_file)
+        sv_positions[row] = sv_position
+        pseudoranges[row] = updated_pseudorange
+    user_position_ecef, user_clock_error = calculate_least_squares_solution(pseudoranges, sv_positions)
 
     times[time_index] = tor
     user_positions_ecef[time_index] = ecef2llh(user_position_ecef)
