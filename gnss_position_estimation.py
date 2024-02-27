@@ -10,32 +10,22 @@ vlight = 299792458.0 # m/s
 # WGS-84 value for earth rotation rate
 eanvel = 7.2921151467e-05 # rad/s
 
-raw = np.loadtxt("group01_raw.dat")
-raw = raw[raw[:, 1] == 0] # only GPS data
-raw = raw[raw[:, 5] == 0] # only L1 band
-raw = raw[raw[:, 8] >= 3] # only data points with tracking status >= 3
+# returns user position given GPS data that were received at the same time
+def calculateUserPosition(satelliteData):
+    if len(np.unique(satelliteData[:, 0])) != 1:
+        print("Fault in satelliteData: rows contain signals received at different times")
+        return False
 
-ephem = np.loadtxt("group01_ephem.dat")
-
-positions = np.array([])
-
-print(len(np.unique(raw[:,0])), "different times")
-
-for tor in np.unique(raw[:,0]):
-    print("Time:", tor)
-    data_points = raw[raw[:, 0] == tor]
-    if len(data_points) < 4: continue # need at least four measurements to determine user position
-
+    tor = satelliteData[0, 0] # since all the times are the same, pick the first one.
     satellites = np.array([])
     z = np.array([])
-    for row in range(len(data_points)):
-        datarow = data_points[row]
-        current_gps_time = tor
+    for row in range(len(satelliteData)):
+        datarow = satelliteData[row]
         svid = datarow[2]
         pr = datarow[3]
 
         # compute time of transmission (tot)
-        tot_first_guess = current_gps_time - pr / vlight
+        tot_first_guess = tor - pr / vlight
         (svpos, svclock, ecode) = ephcal(tot_first_guess, ephem, svid)
         tot_updated = tot_first_guess - svclock
 
@@ -43,12 +33,11 @@ for tor in np.unique(raw[:,0]):
         (svpos, svclock, ecode) = ephcal(tot_updated, ephem, svid)
 
         # apply svclock error to pseudorange
-        pr += svclock*vlight
+        pr += svclock * vlight
 
         # correct for Sagnac effect
-        delta_t = pr/vlight
+        delta_t = pr / vlight
         alpha = delta_t * eanvel
-        delta_svpos = np.zeros((3, 1))
         svpos = np.array([[math.cos(alpha), math.sin(alpha), 0],
                           [-math.sin(alpha), math.cos(alpha), 0],
                           [0, 0, 1]]) @ svpos
@@ -64,7 +53,7 @@ for tor in np.unique(raw[:,0]):
     # x_hat is the current position estimate; last component is the distance error produced by the user clock (c * delta t_u)
     x_hat = np.array([0, 0, 0, 0])
 
-    size_of_last_step = 100000 # arbitrary large value to get the while loop going
+    size_of_last_step = 100000  # arbitrary large value to get the while loop going
     counter = 0
     while size_of_last_step > 0.3 and counter < 2000:
         counter += 1
@@ -89,10 +78,31 @@ for tor in np.unique(raw[:,0]):
         # update estimate
         x_hat = x_hat + delta_x_hat
 
+    userPositionLlh = ecef2llh(x_hat[0:3])
+    return tor, userPositionLlh, x_hat[3]
+
+raw = np.loadtxt("group01_raw.dat")
+raw = raw[raw[:, 1] == 0] # only GPS data
+raw = raw[raw[:, 5] == 0] # only L1 band
+raw = raw[raw[:, 8] >= 3] # only data points with tracking status >= 3
+
+ephem = np.loadtxt("group01_ephem.dat")
+
+positions = np.array([])
+
+print(len(np.unique(raw[:,0])), "different times")
+
+for tor in np.unique(raw[:,0]):
+    print("Time:", tor)
+    data_points = raw[raw[:, 0] == tor]
+    if len(data_points) < 4: continue # need at least four measurements to determine user position
+
+    tor, userPositionLlh, userClockError = calculateUserPosition(data_points)
+
     new_position = np.zeros((1, 5))
     new_position[0, 0] = tor
-    new_position[0, 1:4] = ecef2llh(x_hat[0:3])
-    new_position[0, 4] = x_hat[3]
+    new_position[0, 1:4] = userPositionLlh
+    new_position[0, 4] = userClockError
     if len(positions) == 0: positions = new_position
     else: positions = np.concatenate((positions, new_position), axis=0)
 
