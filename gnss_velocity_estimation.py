@@ -1,15 +1,5 @@
-import numpy as np
-from ephcal import *
-import math
 from matplotlib import pyplot as plt
-from llh2ecef import *
-from gnss_position_estimation import calculate_sv_pos, calculate_least_squares_solution
-
-# GPS value for speed of light
-vlight = 299792458.0 # m/s
-
-# WGS-84 value for earth rotation rate
-eanvel = 7.2921151467e-05 # rad/s
+from subroutines_for_position_estimation import *
 
 raw = np.loadtxt("group01_raw.dat")
 raw = raw[raw[:, 1] == 0] # only GPS data
