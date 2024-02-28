@@ -29,6 +29,7 @@ current_tor = 0
 satellite_ids_previous = []
 satellite_ids_current = []
 velocities = np.zeros((len(np.unique(raw[:, 0]))-1, 3))
+times = np.zeros(len(np.unique(raw[:, 0]))-1)
 time_counter = 0
 for raw_row in range(len(raw)):
     if raw[raw_row, 0] == current_tor: continue
@@ -110,11 +111,18 @@ for raw_row in range(len(raw)):
     delta_x = delta_x[0:3]
     print(delta_x, np.linalg.norm(delta_x))
     velocities[time_counter, :] = delta_x
+    times[time_counter] = current_tor
     time_counter += 1
 
-plt.scatter(velocities[:, 0], velocities[:, 1])
-plt.xlabel("velocity x (m/s)")
-plt.ylabel("velocity y (m/s)")
+velocities_lateral = np.zeros(len(velocities))
+velocities_absolute = np.zeros(len(velocities))
+for i in range(len(velocities)):
+    velocities_lateral[i] = math.sqrt(velocities[i, 0]**2 + velocities[i, 1]**2)
+    velocities_absolute[i] = math.sqrt(velocities[i, 0]**2 + velocities[i, 1]**2 + velocities[i, 2]**2)
+
+plt.scatter(times, velocities_absolute)
+plt.xlabel("time")
+plt.ylabel("velocity (m/s)")
 plt.title("Estimated velocity")
 plt.show()
 
