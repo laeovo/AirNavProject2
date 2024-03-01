@@ -38,6 +38,7 @@ for raw_row in range(len(raw)):
     delta_Phi = np.zeros(len(common_satellite_ids))
     for j in range(len(common_satellite_ids)):
         svid = common_satellite_ids[j]
+        # TODO: maybe corrent carrier phase for svclock?
         Phi_previous = measurements_previous[measurements_previous[:, 2] == svid][0, 4]
         Phi_current = measurements_current[measurements_current[:, 2] == svid][0, 4]
         delta_Phi[j] = Phi_current - Phi_previous
