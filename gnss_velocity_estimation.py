@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 from subroutines_for_position_estimation import *
 
-raw = np.loadtxt("group01_raw.dat")
+raw = np.loadtxt("group02_raw.dat")
 raw = raw[raw[:, 1] == 0] # only GPS data
 raw = raw[raw[:, 5] == 0] # only L1 band
 raw = raw[raw[:, 8] >= 3] # only data points with tracking status >= 3
@@ -12,7 +12,7 @@ for j in range(len(raw) - 1):
     print("Measurements are not in timely order")
     exit(1)
 
-ephem_from_file = np.loadtxt("group01_ephem.dat")
+ephem_from_file = np.loadtxt("group02_ephem.dat")
 
 previous_tor = -1
 current_tor = 0
@@ -34,14 +34,23 @@ for raw_row in range(len(raw)):
     common_satellite_ids = np.intersect1d(satellite_ids_previous, satellite_ids_current)
     if len(common_satellite_ids) < 4: continue # not enough common satellites
 
-    # step 2: compute single difference between common satellites
+    # step 2: compute single carrier phase difference between common satellites
     delta_Phi = np.zeros(len(common_satellite_ids))
     for j in range(len(common_satellite_ids)):
         svid = common_satellite_ids[j]
-        # TODO: maybe corrent carrier phase for svclock?
         Phi_previous = measurements_previous[measurements_previous[:, 2] == svid][0, 4]
         Phi_current = measurements_current[measurements_current[:, 2] == svid][0, 4]
         delta_Phi[j] = Phi_current - Phi_previous
+
+        # TODO: compute Delta eps_j and subtract from Delta Phi_j
+        # disregard ionospheric error; we only have one frequency band
+        # disregard tropospheric error; we don't have the user position yet. Even if we did, we can't compute the height above MSL since the earth is not perfectly spherical.
+        # compute svclock errors
+        (svpos_previous, updated_pr_previous, svclock_previous) = calculate_sv_pos(previous_tor, measurements_previous[measurements_previous[:, 2] == svid][0, 3], svid, ephem_from_file)
+        (svpos_current, updated_pr_current, svclock_current) = calculate_sv_pos(current_tor, measurements_current[measurements_current[:, 2] == svid][0, 3], svid, ephem_from_file)
+        delta_Phi[j] -= -(svclock_current - svclock_previous)
+
+        # TODO: compute Delta n_j and substract from Delta Phi_j
 
     # step 3: calculate unit vectors to satellites at current time
     satellite_positions_current = np.zeros((len(common_satellite_ids), 3))
@@ -49,7 +58,7 @@ for raw_row in range(len(raw)):
     for j in range(len(common_satellite_ids)):
         svid = common_satellite_ids[j]
         old_pseudorange = measurements_current[measurements_current[:, 2] == svid][0, 3]
-        sv_position, updated_pseudorange = calculate_sv_pos(current_tor, old_pseudorange, svid, ephem_from_file)
+        sv_position, updated_pseudorange, svclock = calculate_sv_pos(current_tor, old_pseudorange, svid, ephem_from_file)
         satellite_positions_current[j] = sv_position
         updated_pseudoranges_current[j] = updated_pseudorange
     user_position_current_ecef, user_clock_error = calculate_least_squares_solution(updated_pseudoranges_current, satellite_positions_current)
@@ -63,7 +72,7 @@ for raw_row in range(len(raw)):
     for j in range(len(common_satellite_ids)):
         svid = common_satellite_ids[j]
         old_pseudorange = measurements_previous[measurements_previous[:, 2] == svid][0, 3]
-        sv_position, updated_pseudorange = calculate_sv_pos(previous_tor, old_pseudorange, svid, ephem_from_file)
+        sv_position, updated_pseudorange, svclock = calculate_sv_pos(previous_tor, old_pseudorange, svid, ephem_from_file)
         satellite_positions_previous[j] = sv_position
         updated_pseudoranges_previous[j] = updated_pseudorange
     user_position_previous_ecef, user_clock_error = calculate_least_squares_solution(updated_pseudoranges_previous, satellite_positions_previous)
@@ -82,8 +91,8 @@ for raw_row in range(len(raw)):
     dgeom = np.zeros(len(common_satellite_ids))
     for j in range(len(dgeom)):
         for dim in range(3):
-            svdoppler += e_previous[j, dim] * user_position_previous_ecef[dim]
-            svdoppler -= e_current[j, dim] * user_position_previous_ecef[dim]
+            dgeom += e_previous[j, dim] * user_position_previous_ecef[dim]
+            dgeom -= e_current[j, dim] * user_position_previous_ecef[dim]
 
     # step 7: make Doppler- and Geometry adjustments
     z = np.zeros(len(common_satellite_ids))
@@ -105,6 +114,9 @@ for raw_row in range(len(raw)):
     times[time_counter] = current_tor
     time_counter += 1
 
+time_start = np.min(times)
+for i in range(len(times)):
+    times[i] -= time_start
 velocities_lateral = np.zeros(len(velocities))
 velocities_absolute = np.zeros(len(velocities))
 for i in range(len(velocities)):
