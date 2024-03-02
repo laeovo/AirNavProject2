@@ -8,7 +8,7 @@ vlight = 299792458.0 # m/s
 # WGS-84 value for earth rotation rate
 eanvel = 7.2921151467e-05 # rad/s
 
-# calculates space vehicle position, given time-of-reception, single pseudorange, SV ID and ephem data
+# calculates space vehicle position, updated pseudo range and svclock error, given time-of-reception, single pseudorange, SV ID and ephem data
 def calculate_sv_pos(time_of_reception, pr, svid, ephem):
     # compute time of transmission (tot)
     tot_first_guess = time_of_reception - pr / vlight
@@ -28,7 +28,7 @@ def calculate_sv_pos(time_of_reception, pr, svid, ephem):
                       [-math.sin(alpha), math.cos(alpha), 0],
                       [0, 0, 1]]) @ svpos
 
-    return svpos.T, pr
+    return svpos.T, pr, svclock
 
 # calculates user position in ECEF and user clock error, given pseudoranges and sv positions
 def calculate_least_squares_solution(pseudoranges, satellitePositions):
